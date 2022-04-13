@@ -13,6 +13,12 @@ func TestList(t *testing.T) {
 		require.Equal(t, 0, l.Len())
 		require.Nil(t, l.Front())
 		require.Nil(t, l.Back())
+
+		l.PushFront(10) // [10]
+		front := l.Front()
+		l.Remove(front)
+		l.Remove(front)
+		require.Equal(t, 0, l.Len())
 	})
 
 	t.Run("complex", func(t *testing.T) {
