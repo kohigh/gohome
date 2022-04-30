@@ -107,10 +107,9 @@ func doTasks() {
 	for worker := range r.busyWorkers {
 		worker := worker
 		t := <-worker
+		r.Add(1)
 
 		go func() {
-			r.Add(1)
-
 			err := t()
 			if err != nil {
 				r.addErr()
