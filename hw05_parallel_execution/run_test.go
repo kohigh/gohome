@@ -80,7 +80,7 @@ func TestRun(t *testing.T) {
 			n           int
 			m           int
 		}{
-			{description: "Empty tasks", n: 5, m: 1},
+			{description: "Empty tasks passed", n: 5, m: 1},
 			{description: "Zero number of goroutines", tasks: tasks, n: 0, m: 1},
 			{description: "Negative number of goroutines", tasks: tasks, n: -1, m: 1},
 			{description: "Zero number of errorsLimit", tasks: tasks, n: 1, m: 0},
