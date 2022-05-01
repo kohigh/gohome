@@ -18,14 +18,12 @@ const (
 )
 
 type runner struct {
-	errLimit    int
-	tasks       []Task
-	busyWorkers chan chan Task
-	freeWorkers chan chan Task
-	wg          sync.WaitGroup
-	mu          sync.Mutex
-	state       runnerState
-	errCount    int
+	errLimit int
+	wg       sync.WaitGroup
+	mu       sync.Mutex
+	tasks    []Task
+	state    runnerState
+	errCount int
 }
 
 func (r *runner) syncState() {
@@ -48,6 +46,9 @@ func (r *runner) addErr() {
 }
 
 func (r *runner) findTask() Task {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
 	task := r.tasks[len(r.tasks)-1]
 	r.tasks = r.tasks[:len(r.tasks)-1]
 
@@ -64,11 +65,9 @@ func Run(tasks []Task, n, m int) error {
 
 	r = runner{state: processing, errLimit: m, tasks: tasks}
 
-	allocWorkers(n)
+	freeWorkers, busyWorkers := delegateTasks(n)
 
-	go delegateTasks()
-
-	doTasks()
+	doTasks(freeWorkers, busyWorkers)
 
 	if r.state == failed {
 		return ErrErrorsLimitExceeded
@@ -77,31 +76,33 @@ func Run(tasks []Task, n, m int) error {
 	return nil
 }
 
-func allocWorkers(workersCount int) {
-	r.busyWorkers = make(chan chan Task, workersCount)
-	r.freeWorkers = make(chan chan Task, workersCount)
+func delegateTasks(workersCount int) (chan<- chan Task, <-chan chan Task) {
+	busyWorkers := make(chan chan Task, workersCount)
 
+	freeWorkers := make(chan chan Task, workersCount)
 	for i := 0; i < workersCount; i++ {
-		r.freeWorkers <- make(chan Task, 1)
+		freeWorkers <- make(chan Task, 1)
 	}
-}
 
-func delegateTasks() {
-	for worker := range r.freeWorkers {
-		r.syncState()
+	go func() {
+		for worker := range freeWorkers {
+			r.syncState()
 
-		if r.state == failed || r.state == idle {
-			close(r.busyWorkers)
-			return
+			if r.state == failed || r.state == idle {
+				close(busyWorkers)
+				return
+			}
+
+			worker <- r.findTask()
+			busyWorkers <- worker
 		}
+	}()
 
-		worker <- r.findTask()
-		r.busyWorkers <- worker
-	}
+	return freeWorkers, busyWorkers
 }
 
-func doTasks() {
-	for worker := range r.busyWorkers {
+func doTasks(freeWorkers chan<- chan Task, busyWorkers <-chan chan Task) {
+	for worker := range busyWorkers {
 		worker := worker
 		t := <-worker
 		r.wg.Add(1)
@@ -113,7 +114,7 @@ func doTasks() {
 			}
 
 			r.wg.Done()
-			r.freeWorkers <- worker
+			freeWorkers <- worker
 		}()
 	}
 
