@@ -22,15 +22,15 @@ type runner struct {
 	tasks       []Task
 	busyWorkers chan chan Task
 	freeWorkers chan chan Task
-	sync.WaitGroup
-	sync.Mutex
-	state    runnerState
-	errCount int
+	wg          sync.WaitGroup
+	mu          sync.Mutex
+	state       runnerState
+	errCount    int
 }
 
 func (r *runner) syncState() {
-	r.Lock()
-	defer r.Unlock()
+	r.mu.Lock()
+	defer r.mu.Unlock()
 
 	if r.errCount > r.errLimit {
 		r.state = failed
@@ -42,15 +42,12 @@ func (r *runner) syncState() {
 }
 
 func (r *runner) addErr() {
-	r.Lock()
+	r.mu.Lock()
 	r.errCount++
-	r.Unlock()
+	r.mu.Unlock()
 }
 
 func (r *runner) findTask() Task {
-	r.Lock()
-	defer r.Unlock()
-
 	task := r.tasks[len(r.tasks)-1]
 	r.tasks = r.tasks[:len(r.tasks)-1]
 
@@ -107,7 +104,7 @@ func doTasks() {
 	for worker := range r.busyWorkers {
 		worker := worker
 		t := <-worker
-		r.Add(1)
+		r.wg.Add(1)
 
 		go func() {
 			err := t()
@@ -115,10 +112,10 @@ func doTasks() {
 				r.addErr()
 			}
 
-			r.Done()
+			r.wg.Done()
 			r.freeWorkers <- worker
 		}()
 	}
 
-	r.Wait()
+	r.wg.Wait()
 }
