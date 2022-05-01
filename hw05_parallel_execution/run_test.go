@@ -67,4 +67,31 @@ func TestRun(t *testing.T) {
 		require.Equal(t, runTasksCount, int32(tasksCount), "not all tasks were completed")
 		require.LessOrEqual(t, int64(elapsedTime), int64(sumTime/2), "tasks were run sequentially?")
 	})
+
+	t.Run("invalid arguments", func(t *testing.T) {
+		var tasks []Task
+		tasks = append(tasks, func() error {
+			return nil
+		})
+
+		tests := []struct {
+			description string
+			tasks       []Task
+			n           int
+			m           int
+		}{
+			{description: "Empty tasks passed", n: 5, m: 1},
+			{description: "Zero number of goroutines", tasks: tasks, n: 0, m: 1},
+			{description: "Negative number of goroutines", tasks: tasks, n: -1, m: 1},
+			{description: "Zero number of errorsLimit", tasks: tasks, n: 1, m: 0},
+			{description: "Negative number of errors", tasks: tasks, n: 1, m: -1},
+		}
+
+		for _, tc := range tests {
+			err := Run(tc.tasks, tc.n, tc.m)
+			if err != nil {
+				t.Fatalf("%s: expected: nil, got: %v", tc.description, err)
+			}
+		}
+	})
 }
