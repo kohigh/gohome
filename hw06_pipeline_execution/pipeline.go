@@ -9,15 +9,13 @@ type (
 type Stage func(in In) (out Out)
 
 func ExecutePipeline(in In, done In, stages ...Stage) Out {
-	out := in
-
 	for _, stage := range stages {
-		out = chainChannel(out, done)
+		in = chainChannel(in, done)
 
-		out = stage(out)
+		in = stage(in)
 	}
 
-	return out
+	return in
 }
 
 func chainChannel(in In, done In) Out {
@@ -27,12 +25,6 @@ func chainChannel(in In, done In) Out {
 		defer close(out)
 
 		for v := range in {
-			select {
-			case <-done:
-				return
-			default:
-			}
-
 			select {
 			case <-done:
 				return
