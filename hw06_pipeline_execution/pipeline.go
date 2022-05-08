@@ -24,11 +24,21 @@ func chainChannel(in In, done In) Out {
 	go func() {
 		defer close(out)
 
-		for v := range in {
+		for {
 			select {
 			case <-done:
 				return
-			case out <- v:
+			default:
+			}
+
+			select {
+			case <-done:
+				return
+			case v, ok := <-in:
+				if !ok {
+					return
+				}
+				out <- v
 			}
 		}
 	}()
