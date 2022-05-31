@@ -2,7 +2,7 @@ package main
 
 import (
 	"errors"
-	"github.com/cheggaaa/pb/v3"
+	"github.com/cheggaaa/pb/v3" //nolint
 	"io"
 	"os"
 )
