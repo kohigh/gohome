@@ -43,7 +43,7 @@ func Copy(fromPath, toPath string, offset, limit int64) error {
 	if limit > readerStat.Size()-offset {
 		limit = readerStat.Size() - offset
 	}
-	bar := pb.Full.Start64(limit)
+	bar := pb.Full.Start64(limit) //nolint
 	limitReader := io.LimitReader(reader, limit)
 	barReader := bar.NewProxyReader(limitReader)
 
