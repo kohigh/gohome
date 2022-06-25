@@ -3,6 +3,7 @@ package hw09structvalidator
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/stretchr/testify/require"
 	"testing"
 )
 
@@ -37,24 +38,67 @@ type (
 )
 
 func TestValidate(t *testing.T) {
-	tests := []struct {
-		in          interface{}
-		expectedErr error
+	invalidErrTests := []struct {
+		in           interface{}
+		expectedErrs []error
 	}{
 		{
-			// Place your code here.
+			in: User{
+				ID:     "123",
+				Age:    0,
+				Email:  "vasya",
+				Role:   "customer",
+				Phones: []string{"123", "234"},
+			},
+			expectedErrs: []error{invalidLen, invalidMin, invalidDueToRegexp, invalidIn},
 		},
-		// ...
-		// Place your code here.
+		{
+			in:           App{Version: "123"},
+			expectedErrs: []error{invalidLen},
+		},
+		{
+			in:           Response{Code: 300, Body: "asd"},
+			expectedErrs: []error{invalidIn},
+		},
 	}
 
-	for i, tt := range tests {
+	for i, tt := range invalidErrTests {
 		t.Run(fmt.Sprintf("case %d", i), func(t *testing.T) {
-			tt := tt
-			t.Parallel()
+			e := Validate(tt.in)
+			for _, err := range tt.expectedErrs {
+				require.ErrorContains(t, e, err.Error())
+			}
+		})
+	}
 
-			// Place your code here.
-			_ = tt
+	validErrTests := []struct {
+		in           interface{}
+		expectedErrs []error
+	}{
+		{
+			in: User{
+				ID:     "98739125-daf0-42a8-a58a-e9a29ba2d75b",
+				Age:    20,
+				Email:  "vasya@gmail.com",
+				Role:   "admin",
+				Phones: []string{"12312312312", "12312312311", "12312312313"},
+			},
+		},
+		{
+			in: App{Version: "1.232"},
+		},
+		{
+			in: Token{Header: []byte{}, Payload: []byte{}, Signature: []byte{}},
+		},
+		{
+			in: Response{Code: 404, Body: "asd"},
+		},
+	}
+
+	for i, tt := range validErrTests {
+		t.Run(fmt.Sprintf("case %d", i), func(t *testing.T) {
+			e := Validate(tt.in)
+			require.Nil(t, e)
 		})
 	}
 }
