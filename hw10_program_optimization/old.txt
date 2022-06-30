@@ -1,0 +1,7 @@
+goos: darwin
+goarch: amd64
+pkg: github.com/kohigh/gohome/hw10_program_optimization
+cpu: Intel(R) Core(TM) i7-8850H CPU @ 2.60GHz
+BenchmarkGetDomainStat1-12    	      82	 137148818 ns/op	134445286 B/op	 1700080 allocs/op
+PASS
+ok  	github.com/kohigh/gohome/hw10_program_optimization	12.458s
